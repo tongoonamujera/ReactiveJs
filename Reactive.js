@@ -1,5 +1,16 @@
-const createElement = (type,  attributes = {}, ...props) => {
-  return props
+const createElement = (type,  attributes = {}, ...children) => {
+  const element = [...children].forEach(child => {
+    (typeof child === 'object' ?
+      (child)
+      : createElement("text", {textContent: child})
+    )
+  })
+
+  return {
+    type,
+    children: element,
+    props: Object.assign({ children: element }, attributes),
+  }
 }
 
 let globalId = 0;
@@ -52,7 +63,7 @@ const useEffect = (callbackFn, deps) => {
   })()
 }
 
-const useMemo = () => {
+const useMemo = (callbackFn, deps) => {
   const id = globalId;
   const parent = globalParent;
   globalId++;
@@ -68,7 +79,7 @@ const useMemo = () => {
     })
 
     if (depsChanged) {
-      stateData[id].value = callbackFn()
+      stateData[id].value = callbackFn();
       stateData[id].deps = deps;
     }
 
