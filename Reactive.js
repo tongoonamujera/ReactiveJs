@@ -52,6 +52,30 @@ const useEffect = (callbackFn, deps) => {
   })()
 }
 
+const useMemo = () => {
+  const id = globalId;
+  const parent = globalParent;
+  globalId++;
+  return (() => {
+    const { stateData } = componentState.get(parent);
+  
+    if (stateData[id] === null)
+      (stateData[id] = { deps: undefined })
+
+    const depsChanged = deps == null || deps.some(
+      (dep, i) => {
+        return stateData[id].deps == null || stateData[id].deps[i] !== dep
+    })
+
+    if (depsChanged) {
+      stateData[id].value = callbackFn()
+      stateData[id].deps = deps;
+    }
+
+    return stateData[id].value
+  })()
+}
+
 const renderToDom = (element, props, container) => {
   let state = componentState.get(container) || { stateData: [] }
   componentState.set(container, { ...state, element, props });
