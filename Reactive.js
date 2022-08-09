@@ -56,7 +56,7 @@ const renderToDom = (element, props, container) => {
   let state = componentState.get(container) || { stateData: [] }
   componentState.set(container, { ...state, element, props });
   globalParent = container;
-  globalId = 0
+  globalId = 0;
   container.innerHtml = element;
 }
 

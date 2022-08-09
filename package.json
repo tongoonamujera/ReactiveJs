@@ -1,0 +1,11 @@
+{
+  "name": "reactivejs",
+  "version": "1.0.0",
+  "description": "\"my react clone using pure js\"",
+  "main": "Reactive.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "\"Tongoona Mujera\"",
+  "license": "ISC"
+}
