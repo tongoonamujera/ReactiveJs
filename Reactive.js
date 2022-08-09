@@ -29,8 +29,27 @@ const useState = (initialState) => {
   })()
 }
 
-const useEffect = () => {
+const useEffect = (callbackFn, deps) => {
+  const id = globalId;
+  const parent = globalParent;
+  globalId++;
+  (() => {
+    const { stateData } = componentState.get(parent);
+  
+    if (stateData[id] === null)
+      (stateData[id] = { deps: undefined })
 
+    const depsChanged = deps == null || deps.some(
+      (dep, i) => {
+        return stateData[id].deps == null || stateData[id].deps[i] !== dep
+    })
+
+    if (depsChanged) {
+      if (stateData[id] != null) stateData[id].cleanup()
+      stateData[id].cleanup = callbackFn()
+      stateData[id].deps = deps;
+    }
+  })()
 }
 
 const renderToDom = (element, props, container) => {
