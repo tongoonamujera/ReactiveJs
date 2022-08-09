@@ -1,9 +1,11 @@
 const createElement = (type,  attributes = {}, ...children) => {
   const element = [...children].forEach(child => {
-    (typeof child === 'object' ?
-      (child)
-      : createElement("text", {textContent: child})
-    )
+    if (child !== null && child !== false && child !== true) {
+      (typeof child === 'object' ?
+        (child)
+        : createElement("text", {textContent: child})
+      )
+    }
   })
 
   return {
