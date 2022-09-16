@@ -5,7 +5,13 @@ const createElement = (type,  attributes = {}, ...children) => {
       Object.keys(attributes[key]).forEach(attr => {
         element.style[attr] = attributes[key][attr];
       })
-    )
+    ) 
+      : (key !== "style") ? (
+        (key === "className") ? (
+          element.setAttribute('class', attributes[key])
+        )
+        : element.setAttribute(key, attributes[key])
+      )
       : 
     (element[key] = attributes[key]))
   })
@@ -16,13 +22,20 @@ const createElement = (type,  attributes = {}, ...children) => {
     ) : (typeof child === 'object') ? (
       element.appendChild(child)
     )
-        : element.appendChild(document.createTextNode(child))
+        : (typeof child === 'function' ) ? (
+          processChildren(child)
+        )
+      : element.appendChild(document.createTextNode(child))
     )
   }
 
   (children || []).forEach(ch => processChildren(ch));
 
   return element;
+}
+
+const addEvent = (element) => {
+
 }
 
 let globalId = 0;
@@ -99,7 +112,8 @@ const useMemo = (callbackFn, deps) => {
   })()
 }
 
-const renderToDom = (element, props, container) => {
+const renderToDom = (element, props, container, olDom) => {
+  console.log(element.type);
   let state = componentState.get(container) || { stateData: [] }
   componentState.set(container, { ...state, element, props });
   globalParent = container;
@@ -127,7 +141,7 @@ const container = document.querySelector(".root");
 console.log("container: ", container);
 
 ReactiveJs.renderToDom((
-<div style={{fontWeight: "bold"}}>
+<div style={{fontWeight: "bold"}} onClick={() => console.log('CLICKED')} className={"hello"}>
     hey thats fucking boring
   </div>
 ),
