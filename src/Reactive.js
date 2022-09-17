@@ -1,37 +1,36 @@
 const createElement = (type,  attributes = {}, ...children) => {
-  const element = document.createElement(type);
-  Object.keys(attributes || {}).forEach(key => {
+  return {type, attributes, children};
+}
+
+const processChildren = (child, element) => {
+  (Array.isArray(child) ? (
+    child.forEach(sibling => processChildren(sibling))
+  ) : (typeof child === 'object') ? (
+    element.appendChild(child)
+  )
+      : (typeof child === 'function' ) ? (
+        processChildren(child)
+      )
+    : element.appendChild(document.createTextNode(child))
+  )
+}
+
+const assignAttributes = (element, vdom) => {
+  Object.keys(vdom.attributes || {}).forEach(key => {
     (key === "style" ? (
-      Object.keys(attributes[key]).forEach(attr => {
-        element.style[attr] = attributes[key][attr];
+      Object.keys(vdom.attributes[key]).forEach(attr => {
+        element.style[attr] = vdom.attributes[key][attr];
       })
     ) 
       : (key !== "style") ? (
         (key === "className") ? (
-          element.setAttribute('class', attributes[key])
+          element.setAttribute('class', vdom.attributes[key])
         )
-        : element.setAttribute(key, attributes[key])
+        : element.setAttribute(key, vdom.attributes[key])
       )
       : 
-    (element[key] = attributes[key]))
+    (element[key] = vdom.attributes[key]))
   })
-
-  const processChildren = (child) => {
-    (Array.isArray(child) ? (
-      child.forEach(sibling => processChildren(sibling))
-    ) : (typeof child === 'object') ? (
-      element.appendChild(child)
-    )
-        : (typeof child === 'function' ) ? (
-          processChildren(child)
-        )
-      : element.appendChild(document.createTextNode(child))
-    )
-  }
-
-  (children || []).forEach(ch => processChildren(ch));
-
-  return element;
 }
 
 const addEvent = (element) => {
@@ -112,13 +111,18 @@ const useMemo = (callbackFn, deps) => {
   })()
 }
 
-const renderToDom = (element, props, container, olDom) => {
-  console.log(element.type);
+const renderToDom = (vdom, container, olDom) => {
+  console.log(vdom.type);
   let state = componentState.get(container) || { stateData: [] }
-  componentState.set(container, { ...state, element, props });
+  componentState.set(container, { ...state, vdom, props: vdom.attributes });
   globalParent = container;
   globalId = 0;
-  (container && element) && (container.appendChild(element))
+
+
+  const element = document.createElement(vdom.type);
+  assignAttributes(element, vdom);
+  (vdom.children || []).forEach(ch => processChildren(ch, element));
+  (container && element && container.appendChild(element))
 }
 
 
@@ -142,8 +146,7 @@ console.log("container: ", container);
 
 ReactiveJs.renderToDom((
 <div style={{fontWeight: "bold"}} onClick={() => console.log('CLICKED')} className={"hello"}>
-    hey thats fucking boring
+    hey thats fucking boring, {2 + 2}
   </div>
 ),
-  {},
-  container);
+  container, null);
