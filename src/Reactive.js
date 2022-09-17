@@ -23,7 +23,8 @@ const assignAttributes = (element, vdom) => {
       })
     ) 
       : (key !== "style") ? (
-        (key === "className") ? (
+        (isEvent(key)) ? (addEvent(element, key, vdom))
+        : (key === "className") ? (
           element.setAttribute('class', vdom.attributes[key])
         )
         : element.setAttribute(key, vdom.attributes[key])
@@ -33,8 +34,14 @@ const assignAttributes = (element, vdom) => {
   })
 }
 
-const addEvent = (element) => {
+const isEvent = (eventName) => {
+  return /^on/.test(eventName);
+}
 
+const addEvent = (element, eventName, vdom) => {
+  const extractedEvent = eventName.slice(2).toLowerCase();
+
+  element.addEventListener(extractedEvent, vdom.attributes[eventName])
 }
 
 let globalId = 0;
@@ -113,13 +120,14 @@ const useMemo = (callbackFn, deps) => {
 
 const renderToDom = (vdom, container, olDom) => {
   console.log(vdom.type);
+  const element = document.createElement(vdom.type);
+
   let state = componentState.get(container) || { stateData: [] }
-  componentState.set(container, { ...state, vdom, props: vdom.attributes });
+  componentState.set(container, { ...state, element, props: vdom.attributes });
   globalParent = container;
   globalId = 0;
 
 
-  const element = document.createElement(vdom.type);
   assignAttributes(element, vdom);
   (vdom.children || []).forEach(ch => processChildren(ch, element));
   (container && element && container.appendChild(element))
