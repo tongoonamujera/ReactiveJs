@@ -1,4 +1,7 @@
-const createElement = (type,  attributes = {}, ...children) => {
+const createElement = (type, attributes = {}, ...children) => {
+  if (typeof type === "function") {
+    return type(attributes)
+  }
   return {type, attributes, children};
 }
 
@@ -8,9 +11,6 @@ const processChildren = (child, element) => {
   ) : (typeof child === 'object') ? (
     element.appendChild(child)
   )
-      : (typeof child === 'function' ) ? (
-        processChildren(child)
-      )
     : element.appendChild(document.createTextNode(child))
   )
 }
@@ -148,13 +148,19 @@ const ReactiveJs = (function () {
 
 console.log(ReactiveJs.createElement)
 
+const App = () => {
+  return (
+    <div style={{fontWeight: "bold"}} onClick={() => alert("you clicked me heyyy")} className={"hello"}>
+      hey thats fucking boring, {2 + 2}
+    </div>
+  )
+}
+
 
 const container = document.querySelector(".root");
 console.log("container: ", container);
 
 ReactiveJs.renderToDom((
-<div style={{fontWeight: "bold"}} onClick={() => console.log('CLICKED')} className={"hello"}>
-    hey thats fucking boring, {2 + 2}
-  </div>
+<App />
 ),
   container, null);
