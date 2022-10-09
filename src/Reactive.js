@@ -2,18 +2,28 @@ const createElement = (type, attributes = {}, ...children) => {
   if (typeof type === "function") {
     return type(attributes)
   }
-  return {type, attributes, children};
+  return { type, attributes, children };
 }
 
-const processChildren = (child, element) => {
-  (Array.isArray(child) ? (
-    child.forEach(sibling => processChildren(sibling))
-  ) : (typeof child === 'object') ? (
-    element.appendChild(child)
-  )
-    : element.appendChild(document.createTextNode(child))
-  )
+const processChildren = (vdom) => {
+  let element;
+  element = document.createElement(vdom.type);
+  assignAttributes(element, vdom);
+  if (typeof vdom === "string") { return document.createTextNode(vdom) }
+
+  (vdom.children || []).forEach(child => {
+    console.log(child)
+    element.appendChild(processChildren(child))
+  });
+  
+  return element;
 }
+
+// const diffingAlgo = (dom, vdom, parent) => {
+//   if (dom) {
+//     if (vdom.)
+//   }
+// }
 
 const assignAttributes = (element, vdom) => {
   Object.keys(vdom.attributes || {}).forEach(key => {
@@ -21,16 +31,16 @@ const assignAttributes = (element, vdom) => {
       Object.keys(vdom.attributes[key]).forEach(attr => {
         element.style[attr] = vdom.attributes[key][attr];
       })
-    ) 
+    )
       : (key !== "style") ? (
         (isEvent(key)) ? (addEvent(element, key, vdom))
-        : (key === "className") ? (
-          element.setAttribute('class', vdom.attributes[key])
-        )
-        : element.setAttribute(key, vdom.attributes[key])
+          : (key === "className") ? (
+            element.setAttribute('class', vdom.attributes[key])
+          )
+            : element.setAttribute(key, vdom.attributes[key])
       )
-      : 
-    (element[key] = vdom.attributes[key]))
+        :
+        (element[key] = vdom.attributes[key]))
   })
 }
 
@@ -39,33 +49,38 @@ const isEvent = (eventName) => {
 }
 
 const addEvent = (element, eventName, vdom) => {
-  const extractedEvent = eventName.slice(2).toLowerCase();
-
-  element.addEventListener(extractedEvent, vdom.attributes[eventName])
+  const { attributes } = vdom;
+  console.log(element)
+  element.setAttribute(eventName, attributes[eventName])
+  element.addEventListener(
+    eventName.slice(2).toLowerCase(), attributes[eventName]
+  )
 }
 
 let globalId = 0;
 let componentState = new Map();
 let globalParent;
+let globalElement;
 
 const useState = (initialState) => {
   const id = globalId;
   const parent = globalParent;
+  console.log("parent :", componentState)
   globalId++;
   return (() => {
-    const { stateData} = componentState.get(parent);
-  
-      if (stateData[id] === null ) 
-        (stateData[id] = { value: (typeof initialState === 'function' ? initialState() : initialState ) })
-  
+    let stateData = componentState.get(parent);
+
+    if (stateData == null)
+      (stateData[id] = { value: (typeof initialState === 'function' ? initialState() : initialState) })
+
     const setState = state => {
-      const {props, element } =  componentState.get(parent);
+      const element = componentState.get(parent);
       (typeof state === 'function' ?
         (stateData[id].value = state(stateData[id].value))
         : (stateData[id].value = state)
-        )
-  
-      renderToDom(element, props, parent);
+      )
+
+      renderToDom(globalElement, parent, null);
     }
     return [stateData[id].value, setState];
   })()
@@ -77,14 +92,14 @@ const useEffect = (callbackFn, deps) => {
   globalId++;
   (() => {
     const { stateData } = componentState.get(parent);
-  
+
     if (stateData[id] === null)
       (stateData[id] = { deps: undefined })
 
     const depsChanged = deps == null || deps.some(
       (dep, i) => {
         return stateData[id].deps == null || stateData[id].deps[i] !== dep
-    })
+      })
 
     if (depsChanged) {
       if (stateData[id] != null) stateData[id].cleanup()
@@ -100,14 +115,14 @@ const useMemo = (callbackFn, deps) => {
   globalId++;
   return (() => {
     const { stateData } = componentState.get(parent);
-  
+
     if (stateData[id] === null)
       (stateData[id] = { deps: undefined })
 
     const depsChanged = deps == null || deps.some(
       (dep, i) => {
         return stateData[id].deps == null || stateData[id].deps[i] !== dep
-    })
+      })
 
     if (depsChanged) {
       stateData[id].value = callbackFn();
@@ -118,19 +133,19 @@ const useMemo = (callbackFn, deps) => {
   })()
 }
 
+let currentApp
 const renderToDom = (vdom, container, olDom) => {
-  console.log(vdom.type);
-  const element = document.createElement(vdom.type);
-
-  let state = componentState.get(container) || { stateData: [] }
-  componentState.set(container, { ...state, element, props: vdom.attributes });
+  let state = componentState.get(container) || { stateData: {} }
+  console.log(componentState)
+  componentState.set(container, { ...state, element: document.createElement(vdom.type), props: vdom.attributes });
   globalParent = container;
+  globalElement = vdom;
   globalId = 0;
 
+  const finalApp = processChildren(vdom)
 
-  assignAttributes(element, vdom);
-  (vdom.children || []).forEach(ch => processChildren(ch, element));
-  (container && element && container.appendChild(element))
+  currentApp ? container.replaceChild(finalApp, currentApp) : container.appendChild(finalApp);
+  currentApp = finalApp;
 }
 
 
@@ -143,15 +158,16 @@ const ReactiveJs = (function () {
 
 
 
-/** @jsx ReactiveJs.createElement */
-
-
 console.log(ReactiveJs.createElement)
 
 const App = () => {
   return (
-    <div style={{fontWeight: "bold"}} onClick={() => alert("you clicked me heyyy")} className={"hello"}>
-      hey thats fucking boring, {2 + 2}
+    <div style={{ fontWeight: "bold" }} className={"hello"} onClick={() => alert("hey hey it's enough")}>
+      apo
+      <div className="inner">
+        hello everyone
+        <button onClick={() => alert("alert from inner") }>click Me</button>
+      </div>
     </div>
   )
 }
@@ -161,6 +177,6 @@ const container = document.querySelector(".root");
 console.log("container: ", container);
 
 ReactiveJs.renderToDom((
-<App />
+  <App />
 ),
   container, null);
