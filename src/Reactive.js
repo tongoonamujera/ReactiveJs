@@ -1,3 +1,9 @@
+const container = document.querySelector(".root");
+let globalId = 0;
+let componentState = new Map();
+let globalParent ;
+let globalElement;
+
 const createElement = (type, attributes = {}, ...children) => {
   if (typeof type === "function") {
     return type(attributes)
@@ -12,7 +18,6 @@ const processChildren = (vdom) => {
   if (typeof vdom === "string") { return document.createTextNode(vdom) }
 
   (vdom.children || []).forEach(child => {
-    console.log(child)
     element.appendChild(processChildren(child))
   });
   
@@ -50,28 +55,47 @@ const isEvent = (eventName) => {
 
 const addEvent = (element, eventName, vdom) => {
   const { attributes } = vdom;
-  console.log(element)
   element.setAttribute(eventName, attributes[eventName])
   element.addEventListener(
     eventName.slice(2).toLowerCase(), attributes[eventName]
   )
 }
 
-let globalId = 0;
-let componentState = new Map();
-let globalParent;
-let globalElement;
+let currentApp
+const renderToDom = (vdom, container, olDom) => {
+  const finalApp = processChildren(vdom)
+
+  currentApp ? container.replaceChild(finalApp, currentApp) : container.appendChild(finalApp);
+  currentApp = finalApp;
+
+  let state = componentState.get(container) || { stateData: [] }
+  console.log(state)
+  componentState.set(container, { ...state, element: document.createElement(vdom.type), props: vdom.attributes });
+  globalParent = container;
+  console.log("container: ", componentState.get(container), container)
+  globalElement = vdom;
+  globalId = 0;
+}
+
+
+const ReactiveJs = (function () {
+  return {
+    renderToDom,
+    createElement,
+  }
+})()
 
 const useState = (initialState) => {
   const id = globalId;
   const parent = globalParent;
-  console.log("parent :", componentState)
+  console.log("parent :", componentState[0], globalElement)
   globalId++;
   return (() => {
-    let stateData = componentState.get(parent);
+    let stateData = componentState.get(container) || {stateData: []}
 
-    if (stateData == null)
+    if (stateData[id] == null) {
       (stateData[id] = { value: (typeof initialState === 'function' ? initialState() : initialState) })
+    }
 
     const setState = state => {
       const element = componentState.get(parent);
@@ -80,7 +104,7 @@ const useState = (initialState) => {
         : (stateData[id].value = state)
       )
 
-      renderToDom(globalElement, parent, null);
+      ReactiveJs.renderToDom(globalElement, parent, null);
     }
     return [stateData[id].value, setState];
   })()
@@ -133,47 +157,19 @@ const useMemo = (callbackFn, deps) => {
   })()
 }
 
-let currentApp
-const renderToDom = (vdom, container, olDom) => {
-  let state = componentState.get(container) || { stateData: {} }
-  console.log(componentState)
-  componentState.set(container, { ...state, element: document.createElement(vdom.type), props: vdom.attributes });
-  globalParent = container;
-  globalElement = vdom;
-  globalId = 0;
-
-  const finalApp = processChildren(vdom)
-
-  currentApp ? container.replaceChild(finalApp, currentApp) : container.appendChild(finalApp);
-  currentApp = finalApp;
-}
-
-
-const ReactiveJs = (function () {
-  return {
-    renderToDom,
-    createElement,
-  }
-})()
-
-
-
-console.log(ReactiveJs.createElement)
-
 const App = () => {
+  const [counter, setCounter] = useState(0);
   return (
-    <div style={{ fontWeight: "bold" }} className={"hello"} onClick={() => alert("hey hey it's enough")}>
+    <div style={{ fontWeight: "bold" }} className={"hello"}>
       apo
       <div className="inner">
-        hello everyone
-        <button onClick={() => alert("alert from inner") }>click Me</button>
+        hello everyone {counter}
+        <button onClick={() =>setCounter(counter + 1)}>click Me</button>
       </div>
     </div>
   )
 }
 
-
-const container = document.querySelector(".root");
 console.log("container: ", container);
 
 ReactiveJs.renderToDom((
